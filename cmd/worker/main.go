@@ -7,8 +7,16 @@ import (
 )
 
 func main() {
+	// load config (jika dibutuhkan untuk hal lain)
 	cfg := config.LoadConfig()
-	log := logger.New(cfg.Env)
 
-	worker.StartScheduler(cfg, log)
+	// inisialisasi logger tanpa argumen
+	logg := logger.New()
+	logg.Info("Worker is starting… using DB: " + cfg.DBUrl)
+
+	// jalankan worker scheduler tanpa argumen
+	worker.StartScheduler()
+
+	// blokir agar tidak langsung keluar
+	select {}
 }
