@@ -1,6 +1,8 @@
 package repository
 
 import (
+    "time"
+
     "github.com/irsyadjpp/tracking-diet-backend/internal/domain"
     "gorm.io/gorm"
 )
@@ -27,7 +29,16 @@ func (r *fitnessMeasurementRepository) GetByID(id int) (*domain.FitnessMeasureme
 
 func (r *fitnessMeasurementRepository) ListByUser(userID int) ([]domain.FitnessMeasurement, error) {
     var list []domain.FitnessMeasurement
-    if err := r.db.Where("user_id = ?", userID).Find(&list).Error; err != nil {
+    if err := r.db.Where("user_id = ?", userID).Order("measured_at DESC").Find(&list).Error; err != nil {
+        return nil, err
+    }
+    return list, nil
+}
+
+func (r *fitnessMeasurementRepository) ListByUserWithDateRange(userID int, startDate, endDate time.Time) ([]domain.FitnessMeasurement, error) {
+    var list []domain.FitnessMeasurement
+    if err := r.db.Where("user_id = ? AND measured_at >= ? AND measured_at <= ?", 
+        userID, startDate, endDate).Order("measured_at DESC").Find(&list).Error; err != nil {
         return nil, err
     }
     return list, nil

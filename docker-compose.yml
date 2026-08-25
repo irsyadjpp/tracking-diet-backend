@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:12-alpine
+    container_name: tracking-diet-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-tracking_diet}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for background jobs
+  redis:
+    image: redis:6-alpine
+    container_name: tracking-diet-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tracking-diet-api
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      ENV: ${ENV:-development}
+      PORT: ${PORT:-8080}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-tracking_diet}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-24}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      GOOGLE_GENKIT_API_KEY: ${GOOGLE_GENKIT_API_KEY:-}
+      DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-10}
+      DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-100}
+      DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-1h}
+      READ_TIMEOUT: ${READ_TIMEOUT:-15s}
+      WRITE_TIMEOUT: ${WRITE_TIMEOUT:-15s}
+      IDLE_TIMEOUT: ${IDLE_TIMEOUT:-60s}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Background Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: tracking-diet-worker
+    environment:
+      ENV: ${ENV:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-tracking_diet}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      GOOGLE_GENKIT_API_KEY: ${GOOGLE_GENKIT_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

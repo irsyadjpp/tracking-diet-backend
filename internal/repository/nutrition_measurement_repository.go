@@ -1,6 +1,8 @@
 package repository
 
 import (
+    "time"
+
     "github.com/irsyadjpp/tracking-diet-backend/internal/domain"
     "gorm.io/gorm"
 )
@@ -27,10 +29,31 @@ func (r *nutritionMeasurementRepository) GetByID(id int) (*domain.NutritionMeasu
 
 func (r *nutritionMeasurementRepository) ListByUser(userID int) ([]domain.NutritionMeasurement, error) {
     var list []domain.NutritionMeasurement
-    if err := r.db.Where("user_id = ?", userID).Find(&list).Error; err != nil {
+    if err := r.db.Where("user_id = ?", userID).Order("measured_at DESC").Find(&list).Error; err != nil {
         return nil, err
     }
     return list, nil
+}
+
+func (r *nutritionMeasurementRepository) ListByUserWithDateRange(userID int, startDate, endDate time.Time) ([]domain.NutritionMeasurement, error) {
+    var list []domain.NutritionMeasurement
+    if err := r.db.Where("user_id = ? AND measured_at >= ? AND measured_at <= ?", 
+        userID, startDate, endDate).Order("measured_at DESC").Find(&list).Error; err != nil {
+        return nil, err
+    }
+    return list, nil
+}
+
+func (r *nutritionMeasurementRepository) GetDailySummary(userID int, date time.Time) (*domain.NutritionMeasurement, error) {
+    var summary domain.NutritionMeasurement
+    startDate := date
+    endDate := date.Add(24 * time.Hour)
+    
+    if err := r.db.Where("user_id = ? AND measured_at >= ? AND measured_at < ?", 
+        userID, startDate, endDate).First(&summary).Error; err != nil {
+        return nil, err
+    }
+    return &summary, nil
 }
 
 func (r *nutritionMeasurementRepository) Update(nm *domain.NutritionMeasurement) error {

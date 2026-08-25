@@ -27,10 +27,22 @@ func (r *aiRecommendationRepository) GetByID(id int) (*domain.AIRecommendation, 
 
 func (r *aiRecommendationRepository) ListByUser(userID int) ([]domain.AIRecommendation, error) {
 	var list []domain.AIRecommendation
-	if err := r.db.Where("user_id = ?", userID).Find(&list).Error; err != nil {
+	if err := r.db.Where("user_id = ?", userID).Order("generated_at DESC").Find(&list).Error; err != nil {
 		return nil, err
 	}
 	return list, nil
+}
+
+func (r *aiRecommendationRepository) ListByUserWithCategory(userID int, category string) ([]domain.AIRecommendation, error) {
+	var list []domain.AIRecommendation
+	if err := r.db.Where("user_id = ? AND category = ?", userID, category).Order("generated_at DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *aiRecommendationRepository) Update(ar *domain.AIRecommendation) error {
+	return r.db.Save(ar).Error
 }
 
 func (r *aiRecommendationRepository) Delete(id int) error {

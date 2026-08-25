@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/irsyadjpp/tracking-diet-backend/internal/auth"
 	"github.com/irsyadjpp/tracking-diet-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -14,6 +15,14 @@ func NewUserRepository(db *gorm.DB) domain.UserRepository {
 }
 
 func (r *userRepository) Create(u *domain.User) error {
+	// Hash password before creating user
+	if u.PasswordHash != "" {
+		hashedPassword, err := auth.HashPassword(u.PasswordHash)
+		if err != nil {
+			return err
+		}
+		u.PasswordHash = hashedPassword
+	}
 	return r.db.Create(u).Error
 }
 
@@ -42,6 +51,14 @@ func (r *userRepository) List() ([]domain.User, error) {
 }
 
 func (r *userRepository) Update(u *domain.User) error {
+	// Hash password if it's being updated
+	if u.PasswordHash != "" {
+		hashedPassword, err := auth.HashPassword(u.PasswordHash)
+		if err != nil {
+			return err
+		}
+		u.PasswordHash = hashedPassword
+	}
 	return r.db.Save(u).Error
 }
 
