@@ -10,6 +10,7 @@ import (
 	"github.com/irsyadjpp/tracking-diet-backend/internal/config"
 	"github.com/irsyadjpp/tracking-diet-backend/internal/delivery/handlers"
 	"github.com/irsyadjpp/tracking-diet-backend/internal/delivery/middleware"
+	"github.com/irsyadjpp/tracking-diet-backend/internal/docs"
 	"github.com/irsyadjpp/tracking-diet-backend/internal/domain"
 	"github.com/irsyadjpp/tracking-diet-backend/internal/usecase"
 	"github.com/irsyadjpp/tracking-diet-backend/pkg/logger"
@@ -68,6 +69,29 @@ func (s *HTTPServer) SetupRoutes() {
 	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
+	})
+
+	// OpenAPI spec endpoint
+	openapiSpec := docs.NewOpenAPISpec()
+	s.router.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		jsonSpec, err := openapiSpec.MarshalJSON()
+		if err != nil {
+			http.Error(w, "Failed to generate OpenAPI spec", http.StatusInternalServerError)
+			return
+		}
+		w.Write(jsonSpec)
+	})
+
+	// OpenAPI spec endpoint (YAML)
+	s.router.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/yaml")
+		yamlSpec, err := openapiSpec.MarshalYAML()
+		if err != nil {
+			http.Error(w, "Failed to generate OpenAPI spec", http.StatusInternalServerError)
+			return
+		}
+		w.Write(yamlSpec)
 	})
 
 	// API routes
